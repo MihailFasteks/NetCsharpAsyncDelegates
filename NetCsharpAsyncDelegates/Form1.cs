@@ -1,7 +1,11 @@
+using System;
+
 namespace NetCsharpAsyncDelegates
 {
     public partial class Form1 : Form
     {
+        private CancellationTokenSource _cts;
+        private long _bytesCopied;
         public Form1()
         {
             InitializeComponent();
@@ -11,26 +15,52 @@ namespace NetCsharpAsyncDelegates
         {
             string fileToCopy = textBox1.Text;
             string whereToCopy = textBox2.Text;
-            try
+            _cts = new CancellationTokenSource();
+            _bytesCopied = 0;
+            Task.Factory.StartNew(async () =>
             {
-                await ReadWriteAsync(fileToCopy, whereToCopy);
-                MessageBox.Show("Копирование завершено!");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Ошибка копирования");
-            }
+                try
+                {
+                    await ReadWriteAsync(fileToCopy, whereToCopy, _cts.Token);
+                    MessageBox.Show("Копирование завершено!");
+                }
+                catch (OperationCanceledException)
+                {
+                    MessageBox.Show($"Копирование остановлено! Скопировано {_bytesCopied} байт.");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка копирования: " + ex.Message);
+                }
+            }, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         }
-        static async Task ReadWriteAsync(string sourcePath, string destPath)
+        private async Task ReadWriteAsync(string sourcePath, string destPath, CancellationToken cancellationToken)
         {
-
             const int bufferSize = 4096;
+            byte[] buffer = new byte[bufferSize];
 
             using (FileStream flSource = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, true))
             using (FileStream flDest = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, true))
             {
-                await flSource.CopyToAsync(flDest, bufferSize);
+                long totalBytes = flSource.Length;
+                Invoke(new Action(() =>
+                {
+                    progressBar1.Maximum = 100;
+                    progressBar1.Value = 0;
+                }));
+
+                int bytesRead;
+                while ((bytesRead = await flSource.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+                {
+                    await flDest.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                    _bytesCopied += bytesRead;
+                    int progress = (int)((_bytesCopied * 100) / totalBytes);
+
+                    Invoke(new Action(() => progressBar1.Value = progress));
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
             }
         }
 
@@ -48,6 +78,10 @@ namespace NetCsharpAsyncDelegates
             {
                 textBox2.Text = openFileDialog1.FileName;
             }
+        }
+        private void button4_Click(object sender, EventArgs e)
+        {
+            _cts?.Cancel();
         }
     }
 }

@@ -38,6 +38,7 @@
             button3 = new Button();
             openFileDialog1 = new OpenFileDialog();
             openFileDialog2 = new OpenFileDialog();
+            button4 = new Button();
             SuspendLayout();
             // 
             // button1
@@ -119,6 +120,16 @@
             openFileDialog2.FileName = "openFileDialog2";
             openFileDialog2.Title = "Выберите файл";
             // 
+            // button4
+            // 
+            button4.Location = new Point(396, 219);
+            button4.Name = "button4";
+            button4.Size = new Size(75, 23);
+            button4.TabIndex = 0;
+            button4.Text = "Стоп";
+            button4.UseVisualStyleBackColor = true;
+            button4.Click += button3_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -129,6 +140,7 @@
             Controls.Add(progressBar1);
             Controls.Add(label2);
             Controls.Add(label1);
+            Controls.Add(button4);
             Controls.Add(button3);
             Controls.Add(button2);
             Controls.Add(button1);
@@ -150,5 +162,6 @@
         private Button button3;
         private OpenFileDialog openFileDialog1;
         private OpenFileDialog openFileDialog2;
+        private Button button4;
     }
 }
